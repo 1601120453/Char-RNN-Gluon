@@ -37,7 +37,7 @@ def train(n_epoch, model, dataloader, optimizer, criterion):
         print('{}/{}'.format(e + 1, n_epoch))
         since = time.time()
         loss = train_epoch(model, dataloader, criterion, optimizer)
-        print('Loss: {}, Time: {:.3} s'.format(loss, time.time() - since))
+        print('Loss: {:.6f}, Time: {:.3} s'.format(loss, time.time() - since))
         if (e + 1) % 100 == 0:
             if not os.path.exists('./checkpoints'):
                 os.mkdir('./checkpoints')
@@ -51,7 +51,7 @@ def pick_top_n(preds, top_n=5):
     top_pred_label = top[1].asnumpy()
     top_pred_prob /= nd.sum(top_pred_prob, axis=1, keepdims=True)
     top_pred_prob = top_pred_prob.asnumpy().reshape((-1, ))
-    top_pred_label = top_pred_label.asnumpy().reshape((-1, ))
+    top_pred_label = top_pred_label.reshape((-1, ))
     c = np.random.choice(top_pred_label, size=1, p=top_pred_prob)
     return c
 
@@ -69,7 +69,7 @@ def sample(model, checkpoint, convert, arr_to_text, prime, text_len=20):
     input_txt = nd.array(samples).reshape((1, -1)).as_in_context(ctx)
     _, init_state = model(input_txt)
     result = samples
-    model_input = input_txt[:, input_txt.shape[1]].reshape((1, 1))
+    model_input = input_txt[:, input_txt.shape[1] - 1].reshape((1, -1))
     for i in range(text_len):
         # out是输出的字符，大小为1 x vocab
         # init_state是RNN传递的hidden state
@@ -104,14 +104,14 @@ def main():
     model = CharRNN(convert.vocab_size, opt.embed, opt.hidden, opt.n_layer,
                     opt.dropout)
 
-    model.initialize(ctx=ctx)
+    model.initialize(mx.init.Xavier(), ctx=ctx)
 
     if opt.state == 'train':
         dataset = TextData(opt.txt, opt.len, convert.text_to_arr)
         dataloader = g.data.DataLoader(dataset, opt.batch, shuffle=True)
         optimizer = g.Trainer(model.collect_params(), 'adam',
                               {'learning_rate': 1e-3,
-                               'clip_gradient': 5})
+                               'clip_gradient': 3})
         cross_entorpy = g.loss.SoftmaxCrossEntropyLoss()
         train(opt.epoch, model, dataloader, optimizer, cross_entorpy)
 
