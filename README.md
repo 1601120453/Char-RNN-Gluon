@@ -1,5 +1,5 @@
 # Char-RNN-Gluon
-使用字符级别的RNN进行文本生成，使用MXNet-Gluon框架。
+使用字符级别的RNN进行文本生成，使用MXNet-Gluon框架。[PyTorch实现](https://github.com/SherlockLiao/Char-RNN-PyTorch)
 
 ## Requirements
 - MXNet 0.11.1
