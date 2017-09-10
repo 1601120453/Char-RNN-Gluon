@@ -1,4 +1,5 @@
-#建立Char RNN模型
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
 
 import mxnet as mx
 from mxnet import nd
