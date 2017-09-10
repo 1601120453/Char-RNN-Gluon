@@ -73,7 +73,8 @@ def sample(model, checkpoint, convert, arr_to_text, prime, text_len=20):
     for i in range(text_len):
         # out是输出的字符，大小为1 x vocab
         # init_state是RNN传递的hidden state
-        out, init_state = model(model_input, init_state)
+        with g.autograd.predict_mode():
+            out, init_state = model(model_input, init_state)
         pred = pick_top_n(out)
         model_input = nd.array(pred).reshape((1, -1)).as_in_context(ctx)
         result.append(pred[0])
@@ -104,14 +105,18 @@ def main():
     model = CharRNN(convert.vocab_size, opt.embed, opt.hidden, opt.n_layer,
                     opt.dropout)
 
-    model.initialize(mx.init.Xavier(), ctx=ctx)
+    model.initialize(ctx=ctx)
 
     if opt.state == 'train':
         dataset = TextData(opt.txt, opt.len, convert.text_to_arr)
         dataloader = g.data.DataLoader(dataset, opt.batch, shuffle=True)
-        optimizer = g.Trainer(model.collect_params(), 'adam',
-                              {'learning_rate': 1e-3,
-                               'clip_gradient': 3})
+        lr_sch = mx.lr_scheduler.FactorScheduler(
+            int(1000 * len(dataloader)), factor=0.1)
+        optimizer = g.Trainer(model.collect_params(), 'adam', {
+            'learning_rate': 1e-3,
+            'clip_gradient': 3,
+            'lr_scheduler': lr_sch
+        })
         cross_entorpy = g.loss.SoftmaxCrossEntropyLoss()
         train(opt.epoch, model, dataloader, optimizer, cross_entorpy)
 
