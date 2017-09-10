@@ -13,9 +13,10 @@ class CharRNN(g.Block):
         self.num_layers = num_layers
         self.hidden_size = hidden_size
 
-        self.word_to_vec = g.nn.Embedding(num_classes, embed_dim)
-        self.rnn = g.rnn.GRU(hidden_size, num_layers, dropout=dropout)
-        self.proj = g.nn.Dense(num_classes)
+        with self.name_scope():
+            self.word_to_vec = g.nn.Embedding(num_classes, embed_dim)
+            self.rnn = g.rnn.GRU(hidden_size, num_layers, dropout=dropout)
+            self.proj = g.nn.Dense(num_classes)
 
     def forward(self, x, hs=None):
         batch = x.shape[0]

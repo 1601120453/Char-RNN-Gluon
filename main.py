@@ -28,9 +28,12 @@ def train_epoch(model, dataloader, criterion, optimizer):
             out, _ = model(x)
             batch_loss = criterion(out, y.reshape((-1, )))
         batch_loss.backward()
-        if any(np.any(np.isnan(p.grad().asnumpy())) for p in model.collect_params().values()):
-            print 'found nan, dumping'
-            nd.save('dump', [x, y, batch_loss]+model.collect_params().values())
+        if any(
+                np.any(np.isnan(p.grad().asnumpy()))
+                for p in model.collect_params().values()):
+            print('found nan, dumping')
+            nd.save('dump',
+                    [x, y, batch_loss] + model.collect_params().values())
             sys.exit(1)
         optimizer.step(mb_size)
         running_loss += nd.sum(batch_loss).asscalar()
@@ -47,8 +50,7 @@ def train(n_epoch, model, dataloader, optimizer, criterion):
         if (e + 1) % 100 == 0:
             if not os.path.exists('./checkpoints'):
                 os.mkdir('./checkpoints')
-            model.collect_params().save(
-                './checkpoints/model_{}.params'.format(e + 1))
+            model.save_params('./checkpoints/model_{}.params'.format(e + 1))
 
 
 def pick_top_n(preds, top_n=5):
@@ -70,7 +72,7 @@ def sample(model, checkpoint, convert, arr_to_text, prime, text_len=20):
     prime: 起始文本
     text_len: 生成文本长度
     '''
-    model.collect_params().load(checkpoint, ctx=ctx)
+    model.load_params(checkpoint, ctx=ctx)
     samples = [convert(c) for c in prime]
     input_txt = nd.array(samples).reshape((1, -1)).as_in_context(ctx)
     _, init_state = model(input_txt)
@@ -100,7 +102,8 @@ def main():
     parser.add_argument('--embed', default=512, type=int, help='词向量的维度')
     parser.add_argument('--hidden', default=512, type=int, help='RNN的输出维度')
     parser.add_argument('--n_layer', default=2, type=int, help='RNN的层数')
-    parser.add_argument('--dropout', default=0.5, type=float, help='RNN中drop的概率')
+    parser.add_argument(
+        '--dropout', default=0.5, type=float, help='RNN中drop的概率')
     parser.add_argument('--begin', default='我', help='给出生成文本的开始')
     parser.add_argument('--pred_len', default=20, type=int, help='生成文本的长度')
     parser.add_argument('--checkpoint', help='载入模型的位置')
