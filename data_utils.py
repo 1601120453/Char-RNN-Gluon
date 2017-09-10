@@ -1,4 +1,5 @@
-# 这是用来生成字符下标和建立Gluon下的数据集
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
 
 import numpy as np
 import mxnet as mx

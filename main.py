@@ -1,5 +1,8 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
 import argparse
 import os
+import sys
 import time
 
 import numpy as np
@@ -10,7 +13,7 @@ from mxnet import gluon as g
 from CharRNN import CharRNN
 from data_utils import TextConverter, TextData
 
-ctx = mx.gpu()
+ctx = mx.gpu(0)
 
 
 def train_epoch(model, dataloader, criterion, optimizer):
@@ -24,8 +27,11 @@ def train_epoch(model, dataloader, criterion, optimizer):
         with g.autograd.record():
             out, _ = model(x)
             batch_loss = criterion(out, y.reshape((-1, )))
-        # 反向传播
         batch_loss.backward()
+        if any(np.any(np.isnan(p.grad().asnumpy())) for p in model.collect_params().values()):
+            print 'found nan, dumping'
+            nd.save('dump', [x, y, batch_loss]+model.collect_params().values())
+            sys.exit(1)
         optimizer.step(mb_size)
         running_loss += nd.sum(batch_loss).asscalar()
         n_total += mb_size
@@ -93,7 +99,7 @@ def main():
     parser.add_argument('--embed', default=512, type=int, help='词向量的维度')
     parser.add_argument('--hidden', default=512, type=int, help='RNN的输出维度')
     parser.add_argument('--n_layer', default=2, type=int, help='RNN的层数')
-    parser.add_argument('--dropout', default=0.5, help='RNN中drop的概率')
+    parser.add_argument('--dropout', default=0.5, type=float, help='RNN中drop的概率')
     parser.add_argument('--begin', default='我', help='给出生成文本的开始')
     parser.add_argument('--pred_len', default=20, type=int, help='生成文本的长度')
     parser.add_argument('--checkpoint', help='载入模型的位置')
