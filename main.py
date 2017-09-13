@@ -24,7 +24,7 @@ def train_epoch(model, dataloader, criterion, optimizer):
         y = y.astype('float32').as_in_context(ctx)
         x = x.as_in_context(ctx)
         mb_size = x.shape[0]
-        with g.autograd.record():
+        with mx.autograd.record():
             out, _ = model(x)
             batch_loss = criterion(out, y.reshape((-1, )))
         batch_loss.backward()
@@ -32,8 +32,8 @@ def train_epoch(model, dataloader, criterion, optimizer):
                 np.any(np.isnan(p.grad().asnumpy()))
                 for p in model.collect_params().values()):
             print('found nan, dumping')
-            nd.save('dump',
-                    [x, y, batch_loss] + model.collect_params().values())
+            nd.save('dump', [x, y, batch_loss] +
+                    [x.data() for x in model.collect_params().values()])
             sys.exit(1)
         optimizer.step(mb_size)
         running_loss += nd.sum(batch_loss).asscalar()
@@ -47,7 +47,7 @@ def train(n_epoch, model, dataloader, optimizer, criterion):
         since = time.time()
         loss = train_epoch(model, dataloader, criterion, optimizer)
         print('Loss: {:.6f}, Time: {:.3} s'.format(loss, time.time() - since))
-        if (e + 1) % 100 == 0:
+        if (e + 1) % 1000 == 0:
             if not os.path.exists('./checkpoints'):
                 os.mkdir('./checkpoints')
             model.save_params('./checkpoints/model_{}.params'.format(e + 1))
@@ -81,7 +81,7 @@ def sample(model, checkpoint, convert, arr_to_text, prime, text_len=20):
     for i in range(text_len):
         # out是输出的字符，大小为1 x vocab
         # init_state是RNN传递的hidden state
-        with g.autograd.predict_mode():
+        with mx.autograd.predict_mode():
             out, init_state = model(model_input, init_state)
         pred = pick_top_n(out)
         model_input = nd.array(pred).reshape((1, -1)).as_in_context(ctx)
@@ -119,13 +119,9 @@ def main():
     if opt.state == 'train':
         dataset = TextData(opt.txt, opt.len, convert.text_to_arr)
         dataloader = g.data.DataLoader(dataset, opt.batch, shuffle=True)
-        lr_sch = mx.lr_scheduler.FactorScheduler(
-            int(1000 * len(dataloader)), factor=0.1)
-        optimizer = g.Trainer(model.collect_params(), 'adam', {
-            'learning_rate': 1e-3,
-            'clip_gradient': 3,
-            'lr_scheduler': lr_sch
-        })
+        optimizer = g.Trainer(model.collect_params(), 'adam',
+                              {'learning_rate': 1e-3,
+                               'clip_gradient': 3})
         cross_entorpy = g.loss.SoftmaxCrossEntropyLoss()
         train(opt.epoch, model, dataloader, optimizer, cross_entorpy)
 
