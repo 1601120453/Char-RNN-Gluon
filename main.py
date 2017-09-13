@@ -32,8 +32,9 @@ def train_epoch(model, dataloader, criterion, optimizer):
                 np.any(np.isnan(p.grad().asnumpy()))
                 for p in model.collect_params().values()):
             print('found nan, dumping')
-            nd.save('dump',
-                    [x, y, batch_loss] + model.collect_params().values())
+            dump_dict = {'x': x, 'out': out, 'y': y, 'batch_loss': batch_loss}
+            dump_dict.update(model.collect_params())
+            nd.save('dump', dump_dict)
             sys.exit(1)
         optimizer.step(mb_size)
         running_loss += nd.sum(batch_loss).asscalar()
