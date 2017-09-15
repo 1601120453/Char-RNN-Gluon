@@ -1,6 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
+import codecs
 import numpy as np
 import mxnet as mx
 from mxnet import nd
@@ -9,7 +10,7 @@ from mxnet import gluon as g
 
 class TextConverter(object):
     def __init__(self, text_path, max_vocab=5000):
-        with open(text_path, 'r') as f:
+        with codecs.open(text_path, mode='r', encoding='utf-8') as f:
             text_file = f.readlines()
         word_list = [v for s in text_file for v in s]
         vocab = set(word_list)
@@ -66,7 +67,7 @@ class TextData(g.data.Dataset):
     def __init__(self, text_path, n_step, arr_to_idx):
         self.n_step = n_step
 
-        with open(text_path, 'r') as f:
+        with codecs.open(text_path, mode='r', encoding='utf-8') as f:
             data = f.readlines()
         text = [v for s in data for v in s]
         num_seq = int(len(text) / n_step)
